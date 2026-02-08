@@ -4,8 +4,12 @@ import os
 class Config:
     SECRET_KEY = 'dyslexia-assistant-secret-key'
     DEBUG = True
-    UPLOAD_FOLDER = 'static/uploads'
-    SELECTIONS_FOLDER = 'static/selections'
+    
+    # Use absolute paths to avoid issues with relative paths
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
+    SELECTIONS_FOLDER = os.path.join(BASE_DIR, 'static', 'selections')
+    
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
     SPEECH_RATE = 100
     SIMILARITY_THRESHOLD = 0.75

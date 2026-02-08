@@ -46,7 +46,8 @@ def upload_pdf():
         
         response_data = {
             'success': True,
-            'filename': pdf_file.filename,
+            'filename': filename,  # Return the actual stored filename (with UUID prefix)
+            'original_filename': pdf_file.filename,
             'pdf_url': pdf_url,
             'total_sentences': len(sentences),
             'pages': pdf_processor.pages,
@@ -86,16 +87,29 @@ def load_pdf():
     try:
         data = request.get_json()
         pdf_filename = data.get('filename') or data.get('pdf_name')
+        pdf_url = data.get('pdf_url')
         
-        if not pdf_filename:
-            return jsonify({'error': 'No PDF filename provided'}), 400
+        if not pdf_filename and not pdf_url:
+            return jsonify({'error': 'No PDF filename or URL provided'}), 400
+        
+        # If URL is provided, extract filename from URL
+        if pdf_url and not pdf_filename:
+            pdf_filename = pdf_url.split('/')[-1]
         
         # Construct the full file path
         file_path = os.path.join(Config.UPLOAD_FOLDER, pdf_filename)
         
+        print(f"[DEBUG] Looking for PDF at: {file_path}")
+        print(f"[DEBUG] Config.UPLOAD_FOLDER: {Config.UPLOAD_FOLDER}")
+        print(f"[DEBUG] File exists: {os.path.exists(file_path)}")
+        
         # Check if file exists
         if not os.path.exists(file_path):
             print(f"[ERROR] PDF file not found: {file_path}")
+            # Try to find it in the directory
+            if os.path.exists(Config.UPLOAD_FOLDER):
+                files = os.listdir(Config.UPLOAD_FOLDER)
+                print(f"[DEBUG] Files in upload folder: {files}")
             return jsonify({'error': 'PDF file not found'}), 404
         
         print(f"[PDF] Loading PDF: {pdf_filename}")
@@ -126,3 +140,4 @@ def load_pdf():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
