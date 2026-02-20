@@ -57,6 +57,9 @@ function ReadingAssistant() {
     correctAttempts: 0,
     totalAttempts: 0,
   });
+  const [isOnlineBook, setIsOnlineBook] = useState(false);
+  const [textUrl, setTextUrl] = useState(null);
+  const [currentSentenceText, setCurrentSentenceText] = useState(''); // Store current sentence text
 
   // Handle pre-loaded PDFs from history
   useEffect(() => {
@@ -69,29 +72,47 @@ function ReadingAssistant() {
 
   const loadPdfFromHistory = async (pdf) => {
     setIsProcessing(true);
-    setStatus('Loading PDF from history...');
+    setStatus('Loading content...');
     try {
-      const response = await axios.post('/api/pdf/load-pdf', {
-        filename: pdf.pdf_path || pdf.filename || pdf.pdf_name
-      }, {
-        withCredentials: true
-      });
-
-      if (response.data.success) {
-        setAllSentences(response.data.sentences);
-        setPdfUrl(response.data.pdf_url);
+      // Check if this is an online book
+      if (pdf.isOnlineBook) {
+        // For online books, just set the content and pass text_url to DocumentReader
+        setIsOnlineBook(true);
+        setTextUrl(pdf.text_url);
+        setPdfUrl(null);
         setCurrentView('reading');
-        setStatus('PDF loaded successfully!');
+        setStatus(`Loading "${pdf.title}"...`);
         setSessionStats({
-          totalSentences: response.data.total_sentences,
+          totalSentences: 0,
           completedSentences: 0,
           correctAttempts: 0,
           totalAttempts: 0
         });
+      } else {
+        // For uploaded PDFs, use the existing process
+        const response = await axios.post('/api/pdf/load-pdf', {
+          filename: pdf.pdf_path || pdf.filename || pdf.pdf_name
+        }, {
+          withCredentials: true
+        });
+
+        if (response.data.success) {
+          setIsOnlineBook(false);
+          setAllSentences(response.data.sentences);
+          setPdfUrl(response.data.pdf_url);
+          setCurrentView('reading');
+          setStatus('PDF loaded successfully!');
+          setSessionStats({
+            totalSentences: response.data.total_sentences,
+            completedSentences: 0,
+            correctAttempts: 0,
+            totalAttempts: 0
+          });
+        }
       }
     } catch (error) {
       console.error('Load error:', error);
-      setStatus(`Failed to load PDF: ${error.response?.data?.error || error.message}`);
+      setStatus(`Failed to load content: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -154,7 +175,19 @@ function ReadingAssistant() {
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob);
-      formData.append('word', allSentences[currentSentenceIndex].text); // The backend uses 'word' key for the full text
+      
+      // Use currentSentenceText if available (for online books), otherwise use from allSentences
+      const textToPractice = currentSentenceText || 
+                            allSentences[currentSentenceIndex]?.text || 
+                            '';
+      
+      if (!textToPractice) {
+        setStatus('No sentence text available');
+        setIsProcessing(false);
+        return;
+      }
+      
+      formData.append('word', textToPractice); // The backend uses 'word' key for the full text
 
       const response = await axios.post('/api/practice/evaluate-pronunciation', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -235,6 +268,7 @@ function ReadingAssistant() {
           onJumpTo={jumpToSentence}
           onRestart={restartSession}
           pdfUrl={pdfUrl}
+          currentPdfName={isOnlineBook ? 'Online Book' : 'PDF'}
           stats={sessionStats}
           isReading={isReading}
           readingSpeed={readingSpeed}
@@ -243,6 +277,9 @@ function ReadingAssistant() {
           onSpeedChange={setReadingSpeed}
           isProcessing={isProcessing}
           practiceResult={practiceResult}
+          isOnlineBook={isOnlineBook}
+          textUrl={textUrl}
+          onSentenceChange={setCurrentSentenceText}
         />
       ) : (
         <div className="container">

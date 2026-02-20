@@ -27,6 +27,7 @@ from routes.selection_routes import selection_bp
 from routes.auth_routes import auth_bp
 from routes.history_routes import history_bp
 from routes.admin_routes import admin_bp
+from routes.online_books_routes import online_books_bp
 
 # Check eSpeak availability at startup
 # Check if eSpeak is installed (required for phoneme generation)
@@ -79,6 +80,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api/auth')        # User login/signup
     app.register_blueprint(history_bp, url_prefix='/api/history')  # Reading history
     app.register_blueprint(admin_bp, url_prefix='/api/admin')      # Admin endpoints
+    app.register_blueprint(online_books_bp, url_prefix='/api/online-books') # Online books library
 
     # =========================
     # SIMPLE TEST ENDPOINT

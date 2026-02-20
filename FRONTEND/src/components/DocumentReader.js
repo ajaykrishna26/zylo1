@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import axios from 'axios';
 
 // Set worker source
 // Set worker source dynamically to match version
@@ -22,11 +23,17 @@ const DocumentReader = ({
   isProcessing,
   practiceResult,
   wordFeedback: parentWordFeedback,
-  stats // Add stats to props
+  stats, // Add stats to props
+  isOnlineBook = false, // New prop: indicates if this is an online book
+  textUrl = null, // New prop: URL to fetch text from
+  onSentenceChange = null, // New callback to notify parent of current sentence
 }) => {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [contentLoading, setContentLoading] = useState(isOnlineBook);
+  const [contentError, setContentError] = useState('');
+  const [onlineSentences, setOnlineSentences] = useState([]);
 
   // Audio refs
   const utteranceRef = useRef(null);
@@ -48,6 +55,38 @@ const DocumentReader = ({
 
   // Magnifier Lens Ref
   const lensRef = useRef(null);
+
+  // For online books, process the text content
+  useEffect(() => {
+    if (isOnlineBook && textUrl) {
+      processOnlineBook();
+    }
+  }, [isOnlineBook, textUrl]);
+
+  const processOnlineBook = async () => {
+    setContentLoading(true);
+    setContentError('');
+    try {
+      const response = await axios.post('/api/online-books/process', {
+        text_url: textUrl
+      });
+
+      if (response.data.success) {
+        setOnlineSentences(response.data.sentences || []);
+        setLoading(false);
+      } else {
+        setContentError(response.data.error || 'Failed to process online book');
+      }
+    } catch (err) {
+      console.error('Error processing online book:', err);
+      setContentError('Failed to load online book content');
+    } finally {
+      setContentLoading(false);
+    }
+  };
+
+  // Determine which sentences array to use
+  const effectiveSentences = isOnlineBook ? onlineSentences : (parentSentences || []);
 
   // Load voices
   useEffect(() => {
@@ -258,14 +297,14 @@ const DocumentReader = ({
   const audioPlayerRef = useRef(new Audio());
 
   const handleListenClick = async () => {
-    if (!parentSentences[activeSentenceIndex]) return;
+    if (!effectiveSentences[activeSentenceIndex]) return;
 
     // Stop browser voice reading
     window.speechSynthesis.cancel();
 
     setIsTtsLoading(true);
     try {
-      const text = parentSentences[activeSentenceIndex].text;
+      const text = effectiveSentences[activeSentenceIndex].text;
       const response = await fetch('/api/practice/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -469,6 +508,13 @@ const DocumentReader = ({
     }
   }, [activeSentenceIndex, domItemsMap, pageNumber, parentSentences, parentIsReading, isRecording, practiceResult]);
 
+  // Notify parent of current sentence text when it changes (for online books)
+  useEffect(() => {
+    const currentSentence = effectiveSentences[activeSentenceIndex];
+    if (currentSentence && onSentenceChange) {
+      onSentenceChange(currentSentence.text);
+    }
+  }, [activeSentenceIndex, effectiveSentences, onSentenceChange]);
 
 
   // Auto-Read useEffect removed to enforce manual line-by-line reading.
@@ -523,7 +569,7 @@ const DocumentReader = ({
   }, [practiceResult]);
 
   const handleNextSentence = () => {
-    if (activeSentenceIndex < (parentSentences || []).length - 1) {
+    if (activeSentenceIndex < effectiveSentences.length - 1) {
       if (onJumpTo) onJumpTo(activeSentenceIndex + 1);
     }
   };
@@ -563,12 +609,12 @@ const DocumentReader = ({
         <div className="control-group box" style={{ padding: '15px', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
             <button className="btn btn-sm btn-secondary" onClick={handlePrevSentence} disabled={activeSentenceIndex <= 0}>◀</button>
-            <span className="stat-value" style={{ flex: 1, textAlign: 'center' }}>{activeSentenceIndex + 1} / {(parentSentences || []).length}</span>
-            <button className="btn btn-sm btn-secondary" onClick={handleNextSentence} disabled={activeSentenceIndex >= (parentSentences || []).length - 1}>▶</button>
+            <span className="stat-value" style={{ flex: 1, textAlign: 'center' }}>{activeSentenceIndex + 1} / {effectiveSentences.length}</span>
+            <button className="btn btn-sm btn-secondary" onClick={handleNextSentence} disabled={activeSentenceIndex >= effectiveSentences.length - 1}>▶</button>
           </div>
 
           <div style={{ fontSize: '1.1rem', color: '#e2e8f0', backgroundColor: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '10px', minHeight: '100px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-            {(parentSentences || []).length > 0 ? (
+            {effectiveSentences.length > 0 ? (
               wordFeedback.map((w, i) => (
                 <span
                   key={i}
@@ -654,23 +700,81 @@ const DocumentReader = ({
       </div>
 
       <div className="reader-content" style={{ flex: 1, padding: '40px', display: 'flex', justifyContent: 'center', overflow: 'auto', backgroundColor: '#525659' }}>
-        <Document
-          file={pdfUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          loading={<div className="text-white">Loading Document...</div>}
-          className="pdf-document"
-        >
-          <Page
-            pageNumber={pageNumber}
-            onLoadSuccess={onPageLoadSuccess}
-            className="pdf-page shadow-2xl"
-            width={850}
-            renderTextLayer={true}
-            renderAnnotationLayer={false}
+        {/* Online Book Text Renderer */}
+        {isOnlineBook ? (
+          contentLoading ? (
+            <div className="text-white">Loading online book content...</div>
+          ) : contentError ? (
+            <div style={{ color: '#f87171', textAlign: 'center', padding: '40px' }}>
+              <p>❌ {contentError}</p>
+              <p style={{ fontSize: '0.9rem', color: '#a0aec0' }}>Try selecting a different book</p>
+            </div>
+          ) : onlineSentences.length > 0 ? (
+            <div className="online-book-reader" style={{
+              maxWidth: '850px',
+              width: '100%',
+              backgroundColor: '#2d3748',
+              padding: '40px',
+              borderRadius: '8px',
+              fontSize: '1.1rem',
+              lineHeight: '1.8',
+              color: '#e2e8f0'
+            }}>
+              <div style={{ position: 'relative' }}>
+                {onlineSentences.map((sentence, idx) => (
+                  <span
+                    key={idx}
+                    className={idx === activeSentenceIndex ? 'sentence-active' : ''}
+                    onClick={() => onJumpTo && onJumpTo(idx)}
+                    style={{
+                      cursor: 'pointer',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      transition: 'all 0.2s ease',
+                      backgroundColor: idx === activeSentenceIndex ? 'rgba(59, 130, 246, 0.3)' : 'transparent',
+                      fontWeight: idx === activeSentenceIndex ? '600' : 'normal',
+                      color: idx === activeSentenceIndex ? '#3b82f6' : '#e2e8f0'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (idx !== activeSentenceIndex) {
+                        e.target.style.backgroundColor = 'rgba(75, 85, 99, 0.5)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (idx !== activeSentenceIndex) {
+                        e.target.style.backgroundColor = 'transparent';
+                      }
+                    }}
+                  >
+                    {sentence.text}{' '}
+                  </span>
+                ))}
+                <div ref={lensRef} className="magnifier-container" style={{ display: 'none', opacity: 0 }} />
+              </div>
+            </div>
+          ) : (
+            <div className="text-white">No sentences found</div>
+          )
+        ) : (
+          /* PDF Renderer */
+          <Document
+            file={pdfUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            loading={<div className="text-white">Loading Document...</div>}
+            className="pdf-document"
           >
-            <div ref={lensRef} className="magnifier-container" style={{ display: 'none', opacity: 0 }} />
-          </Page>
-        </Document>
+            <Page
+              pageNumber={pageNumber}
+              onLoadSuccess={onPageLoadSuccess}
+              className="pdf-page shadow-2xl"
+              width={850}
+              renderTextLayer={true}
+              renderAnnotationLayer={false}
+            >
+              <div ref={lensRef} className="magnifier-container" style={{ display: 'none', opacity: 0 }} />
+            </Page>
+          </Document>
+        )}
       </div>
 
     </div>
