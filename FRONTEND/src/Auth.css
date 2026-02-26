@@ -8,7 +8,8 @@
 body {
     margin: 0;
     font-family: "Segoe UI", Arial, sans-serif;
-    background: #020617;
+    background: var(--background);
+    color: var(--text-primary);
 }
 
 /* ===============================
@@ -21,24 +22,25 @@ body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    color: #e5e7eb;
+    color: var(--text-primary);
 }
 
 .auth-background {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at top, #1e293b, #020617);
+    background: transparent;
     z-index: -2;
 }
 
 /* Floating orbs */
 .floating-orb {
     position: absolute;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.5), transparent 70%);
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, var(--primary), transparent 70%);
     border-radius: 50%;
-    filter: blur(40px);
+    filter: blur(60px);
+    opacity: 0.15;
     animation: float 10s infinite alternate ease-in-out;
     z-index: -1;
 }
@@ -77,10 +79,9 @@ body {
     width: 100%;
     max-width: 420px;
     padding: 2.5rem;
-    border-radius: 16px;
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(12px);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    border-radius: 12px;
+    background: var(--surface);
+    box-shadow: var(--card-shadow);
 }
 
 /* ===============================
@@ -92,7 +93,7 @@ body {
 }
 
 .auth-logo-icon {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     margin-bottom: 0.5rem;
 }
 
@@ -104,7 +105,7 @@ body {
 .auth-subtitle {
     margin-top: 0.4rem;
     font-size: 0.9rem;
-    color: #94a3b8;
+    color: var(--text-secondary);
 }
 
 /* ===============================
@@ -123,7 +124,7 @@ body {
     display: block;
     margin-bottom: 0.4rem;
     font-size: 0.85rem;
-    color: #cbd5f5;
+    color: var(--text-secondary);
 }
 
 .input-icon {
@@ -131,25 +132,26 @@ body {
     left: 10px;
     top: 38px;
     font-size: 1rem;
-    opacity: 0.8;
+    opacity: 0.6;
 }
 
 .form-group input {
     width: 100%;
     padding: 10px 12px 10px 36px;
     border-radius: 8px;
-    border: 1px solid #334155;
-    background: #020617;
-    color: #e5e7eb;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--glass);
+    color: var(--text-primary);
     outline: none;
 }
 
 .form-group input::placeholder {
-    color: #64748b;
+    color: var(--text-secondary);
 }
 
 .form-group input:focus {
-    border-color: #3b82f6;
+    border-color: var(--primary-hover);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.06);
 }
 
 /* ===============================
@@ -192,11 +194,12 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(239, 68, 68, 0.15);
-    color: #fecaca;
+    background: rgba(220, 38, 38, 0.08);
+    color: var(--error);
     padding: 10px;
     border-radius: 8px;
     margin-bottom: 1rem;
+    border: 1px solid rgba(220, 38, 38, 0.18);
 }
 
 /* ===============================
@@ -208,7 +211,7 @@ body {
     margin-top: 0.5rem;
     border: none;
     border-radius: 10px;
-    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
     color: white;
     font-size: 1rem;
     cursor: pointer;
@@ -258,7 +261,7 @@ body {
 }
 
 .auth-switch a {
-    color: #60a5fa;
+    color: #2563eb;
     text-decoration: none;
 }
 
@@ -276,7 +279,7 @@ body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    color: #e5e7eb;
+    color: var(--text-primary);
 }
 
 .admin-card {
@@ -284,9 +287,9 @@ body {
     max-width: 1000px;
     padding: 2.5rem;
     border-radius: 16px;
-    background: rgba(15, 23, 42, 0.85);
+    background: var(--surface);
     backdrop-filter: blur(12px);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--card-shadow);
 }
 
 .admin-card h1 {
@@ -295,7 +298,7 @@ body {
 }
 
 .admin-card .muted {
-    color: #94a3b8;
+    color: var(--text-secondary);
     margin-bottom: 2rem;
 }
 
@@ -308,13 +311,13 @@ body {
 .admin-box {
     padding: 1.5rem;
     border-radius: 12px;
-    background: rgba(30, 41, 59, 0.6);
-    border: 1px solid #334155;
+    background: rgba(30, 41, 59, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.04);
     transition: all 0.3s ease;
 }
 
 .admin-box:hover {
-    border-color: #3b82f6;
+    border-color: var(--primary-hover);
     background: rgba(30, 41, 59, 0.9);
     transform: translateY(-2px);
 }
@@ -326,7 +329,7 @@ body {
 
 .admin-box p {
     margin: 0 0 1rem 0;
-    color: #cbd5f5;
+    color: var(--text-primary);
     font-size: 0.9rem;
 }
 
@@ -335,7 +338,7 @@ body {
     padding: 10px;
     border: none;
     border-radius: 8px;
-    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
     color: white;
     cursor: pointer;
     transition: all 0.2s;
@@ -356,7 +359,7 @@ body {
 .admin-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -365,7 +368,7 @@ body {
 }
 
 .admin-modal {
-    background: rgba(15, 23, 42, 0.95);
+    background: var(--surface);
     backdrop-filter: blur(12px);
     border-radius: 16px;
     padding: 2rem;
@@ -373,12 +376,12 @@ body {
     width: 100%;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+    box-shadow: var(--card-shadow);
 }
 
 .admin-modal h2 {
     margin-top: 0;
-    color: #e5e7eb;
+    color: var(--text-primary);
 }
 
 .admin-table {
@@ -449,7 +452,17 @@ body {
 
     .admin-table-header,
     .admin-table-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
         gap: 0.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-modal {
+        max-width: 95%;
+    }
+
+    .admin-table {
+        overflow-x: auto;
     }
 }

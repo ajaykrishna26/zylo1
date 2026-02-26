@@ -11,8 +11,8 @@ TOKEN = None
 # Login
 print("[1] Logging in...")
 response = requests.post(f"{BASE_URL}/api/auth/login", json={
-    "email": "admin@example.com",
-    "password": "Admin123!@"
+    "email": "admin@gmail.com",
+    "password": "Admin@123"
 })
 
 if response.status_code != 200:

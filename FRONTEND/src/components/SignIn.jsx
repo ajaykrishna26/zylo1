@@ -20,7 +20,7 @@ const SignIn = () => {
         const result = await login(email, password);
 
         if (result.success) {
-            const isAdmin = result.user?.email === 'admin@example.com';
+            const isAdmin = result.user?.email === 'admin@gmail.com';
             if (isAdmin) {
                 navigate('/admin');
             } else {

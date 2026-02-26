@@ -7,8 +7,8 @@ import json
 import time
 
 BASE_URL = "http://localhost:5000"
-ADMIN_EMAIL = "admin@example.com"
-ADMIN_PASSWORD = "Admin123!@"
+ADMIN_EMAIL = "admin@gmail.com"
+ADMIN_PASSWORD = "Admin@123"
 USER_EMAIL = "testuser@example.com"
 USER_PASSWORD = "Test123!@"
 

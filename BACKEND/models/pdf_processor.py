@@ -1,15 +1,15 @@
 import fitz  # PyMuPDF
 import pdfplumber
 import uuid
+import os
 from typing import List, Dict, Any
 
 
 class PDFProcessor:
     """
-    Full PDF reader backend:
-    - Extracts every word with exact coordinates
+    Full document reader backend:
+    - Extracts every word with exact coordinates (PDF)
     - Supports word selection
-    - Generates highlighted PDF
     - Tracks practice statistics
     """
 
@@ -20,50 +20,7 @@ class PDFProcessor:
         self.pages: int = 0
         self.current_pdf_path: str | None = None
 
-    # --------------------------------------------------
-    # LOAD & PARSE PDF
-    # --------------------------------------------------
-    def load_pdf(self, pdf_path: str) -> List[Dict[str, Any]]:
-        """
-        Load a PDF file and extract all words with positions.
-        """
-        self.words = []
-        self.pages = 0
-        self.current_pdf_path = pdf_path
-
-        with pdfplumber.open(pdf_path) as pdf:
-            self.pages = len(pdf.pages)
-
-            for page_number, page in enumerate(pdf.pages):
-                extracted_words = page.extract_words(
-                    use_text_flow=True,
-                    keep_blank_chars=False
-                )
-
-                for w in extracted_words:
-                    self.words.append({
-                        "id": str(uuid.uuid4()),
-                        "text": w["text"],
-                        "page": page_number,
-                        "x0": w["x0"],
-                        "y0": w["top"],
-                        "x1": w["x1"],
-                        "y1": w["bottom"],
-                        "selected": False,
-                        "read_count": 0,
-                        "success_count": 0
-                    })
-
-        return self.words
-
-    def extract_text_with_positions(self, pdf_path: str) -> List[Dict[str, Any]]:
-        """
-        Extract text from PDF and split into lines for practice.
-        """
-        self.sentences = []
-        self.page_texts = []
-        self.current_pdf_path = pdf_path
-        
+    def _extract_from_pdf(self, pdf_path: str):
         with pdfplumber.open(pdf_path) as pdf:
             self.pages = len(pdf.pages)
             for page_num, page in enumerate(pdf.pages):
@@ -76,7 +33,6 @@ class PDFProcessor:
                 line_in_page = 1
                 for line_text in raw_lines:
                     line_text = line_text.strip()
-                    # Keep any non-empty line
                     if line_text:
                         self.sentences.append({
                             'text': line_text,
@@ -86,53 +42,27 @@ class PDFProcessor:
                             'global_index': len(self.sentences)
                         })
                         line_in_page += 1
+
+    def extract_text_with_positions(self, file_path: str) -> List[Dict[str, Any]]:
+        """
+        Extract text from PDF and split into lines for practice.
+        """
+        self.sentences = []
+        self.page_texts = []
+        self.current_pdf_path = file_path
+        
+        self._extract_from_pdf(file_path)
                         
         return self.sentences
 
-    # --------------------------------------------------
-    # SENTENCE SELECTION & MANAGEMENT
-    # --------------------------------------------------
-    def update_sentence_selection(self, sentence_indices: List[int], selected: bool = True):
-        """Mark specific sentences as selected/unselected by their global index"""
-        for idx in sentence_indices:
-            if 0 <= idx < len(self.sentences):
-                self.sentences[idx]['selected'] = selected
-
-    def get_selected_sentences(self) -> List[Dict[str, Any]]:
-        """Return all selected sentences"""
-        return [s for s in self.sentences if s.get('selected')]
-
-    def update_sentence_text(self, index: int, new_text: str):
-        """Update the text of a sentence (customization)"""
-        if 0 <= index < len(self.sentences):
-            self.sentences[index]['text'] = new_text
-
-    # --------------------------------------------------
-    # STATS
-    # --------------------------------------------------
     def get_sentence_stats(self) -> Dict[str, Any]:
         """Get statistics for sentences"""
         total = len(self.sentences)
-        selected = len(self.get_selected_sentences())
+        selected = len([s for s in self.sentences if s.get('selected')])
         
         return {
             'total_sentences': total,
             'selected_sentences': selected,
             'completion_rate': (selected / total * 100) if total > 0 else 0,
             'total_pages': self.pages
-        }
-
-    def get_stats(self) -> Dict[str, Any]:
-        """Get overall word-level statistics"""
-        total_words = len(self.words)
-        selected_words = len([w for w in self.words if w.get("selected")])
-        practiced_words = len([w for w in self.words if w.get("read_count", 0) > 0])
-
-        return {
-            "total_words": total_words,
-            "selected_words": selected_words,
-            "practiced_words": practiced_words,
-            "selection_percentage": (
-                selected_words / total_words * 100 if total_words else 0
-            )
         }

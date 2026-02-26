@@ -12,6 +12,7 @@ import SignUp from './components/SignUp';
 import AdminDashboard from './components/AdminDashboard';
 import Dashboard from './components/Dashboard';
 import ReadBooks from './components/ReadBooks';
+import LandingPage from './components/LandingPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Protected Route Component
@@ -32,8 +33,18 @@ const AdminRoute = ({ children }) => {
     return <div className="loading-screen" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '1.5rem' }}>Loading...</div>;
   }
 
-  const isAdmin = user?.email === 'admin@example.com';
+  const isAdmin = user?.email === 'admin@gmail.com';
   return isAdmin ? children : <Navigate to="/" />;
+};
+
+const HomeRoute = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="loading-screen" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '1.5rem' }}>Loading...</div>;
+  }
+
+  return user ? <Navigate to="/dashboard" /> : <LandingPage />;
 };
 
 function ReadingAssistant() {
@@ -101,7 +112,7 @@ function ReadingAssistant() {
           setAllSentences(response.data.sentences);
           setPdfUrl(response.data.pdf_url);
           setCurrentView('reading');
-          setStatus('PDF loaded successfully!');
+          setStatus('Document loaded successfully!');
           setSessionStats({
             totalSentences: response.data.total_sentences,
             completedSentences: 0,
@@ -134,7 +145,7 @@ function ReadingAssistant() {
         setAllSentences(response.data.sentences);
         setPdfUrl(response.data.pdf_url);
         setCurrentView('reading');
-        setStatus('PDF loaded successfully!');
+        setStatus('Document loaded successfully!');
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -175,18 +186,18 @@ function ReadingAssistant() {
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob);
-      
+
       // Use currentSentenceText if available (for online books), otherwise use from allSentences
-      const textToPractice = currentSentenceText || 
-                            allSentences[currentSentenceIndex]?.text || 
-                            '';
-      
+      const textToPractice = currentSentenceText ||
+        allSentences[currentSentenceIndex]?.text ||
+        '';
+
       if (!textToPractice) {
         setStatus('No sentence text available');
         setIsProcessing(false);
         return;
       }
-      
+
       formData.append('word', textToPractice); // The backend uses 'word' key for the full text
 
       const response = await axios.post('/api/practice/evaluate-pronunciation', formData, {
@@ -244,6 +255,7 @@ function ReadingAssistant() {
     setCurrentSentenceIndex(0);
     setCurrentView('upload');
     setPdfFile(null);
+    setPdfUrl(null);
     setAllSentences([]);
     setSessionStats({
       totalSentences: 0,
@@ -308,6 +320,7 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          <Route path="/" element={<HomeRoute />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
@@ -331,8 +344,7 @@ function App() {
               <ReadingAssistant />
             </PrivateRoute>
           } />
-          <Route path="/" element={<Navigate to="/dashboard" />} />
-          <Route path="*" element={<Navigate to="/dashboard" />} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>
     </AuthProvider>

@@ -52,6 +52,18 @@ class User:
         if not user or 'password_hash' not in user:
             return False
         return bcrypt.checkpw(password.encode('utf-8'), user['password_hash'])
+
+    @staticmethod
+    def update_login_activity(user_id):
+        """Record login timestamp and increment login count"""
+        users = get_users_collection()
+        users.update_one(
+            {'_id': ObjectId(user_id) if isinstance(user_id, str) else user_id},
+            {
+                '$set': {'last_login': datetime.utcnow()},
+                '$inc': {'login_count': 1}
+            }
+        )
     
     @staticmethod
     def to_dict(user):
@@ -62,5 +74,7 @@ class User:
             'id': str(user['_id']),
             'email': user['email'],
             'name': user['name'],
-            'created_at': user['created_at'].isoformat() if user.get('created_at') else None
+            'created_at': user['created_at'].isoformat() if user.get('created_at') else None,
+            'last_login': user['last_login'].isoformat() if user.get('last_login') else None,
+            'login_count': user.get('login_count', 0)
         }

@@ -64,7 +64,7 @@ print(f"    [OK] Logged in as: {user['name']} ({user['email']})")
 
 # 3. Verify not admin
 print("\n[3] Verify user is not admin...")
-if user['email'] == 'admin@example.com':
+if user['email'] == 'admin@gmail.com':
     print("    [FAIL] User should not be admin!")
     exit(1)
 print("    [OK] User is regular user (will go to Dashboard, not AdminDashboard)")

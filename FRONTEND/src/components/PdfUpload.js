@@ -86,7 +86,7 @@ const PdfUpload = ({ onPdfUpload, isUploading }) => {
                 {isDragOver ? 'Drop it here!' : 'Click to Pick a Story'}
               </p>
               <p className="text-secondary">
-                or drag your PDF file here
+                or drag your PDF or DOCX file here
               </p>
             </div>
           )}
@@ -95,7 +95,7 @@ const PdfUpload = ({ onPdfUpload, isUploading }) => {
         <input
           type="file"
           ref={fileInputRef}
-          accept=".pdf"
+          accept=".pdf,.docx"
           onChange={handleFileChange}
           style={{ display: 'none' }}
           disabled={isUploading}

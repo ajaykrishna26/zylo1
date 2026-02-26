@@ -11,9 +11,18 @@ auth_bp = Blueprint('auth', __name__)
 def register():
     """Register a new user"""
     try:
-        data = request.get_json()
-        
+        # Read raw body and attempt to parse JSON. If parsing fails, log raw
+        raw_body = request.get_data(as_text=True)
+        try:
+            data = request.get_json()
+        except Exception as e:
+            print(f"[ERROR] Failed to parse JSON body: {e}")
+            print(f"[ERROR] Raw request body: {raw_body}")
+            return jsonify({'success': False, 'error': 'Invalid JSON in request body'}), 400
+
         if not data:
+            # If get_json returned None, also report raw body for debugging
+            print(f"[ERROR] Empty JSON body received. Raw: {raw_body}")
             return jsonify({'success': False, 'error': 'No data provided'}), 400
         
         email = data.get('email', '').strip()
@@ -95,6 +104,9 @@ def login():
                 'success': False,
                 'error': 'Invalid email or password'
             }), 401
+        
+        # Record login activity
+        User.update_login_activity(user['_id'])
         
         # Create access token
         access_token = create_access_token(

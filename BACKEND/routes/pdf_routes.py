@@ -15,8 +15,8 @@ def upload_pdf():
     print("[API] PDF upload endpoint called")
     
     if 'pdf' not in request.files:
-        print("[ERROR] No PDF file in request")
-        return jsonify({'error': 'No PDF file provided'}), 400
+        print("[ERROR] No file in request")
+        return jsonify({'error': 'No file provided'}), 400
     
     pdf_file = request.files['pdf']
     if pdf_file.filename == '':
@@ -24,7 +24,7 @@ def upload_pdf():
         return jsonify({'error': 'No file selected'}), 400
     
     if not pdf_file.filename.lower().endswith('.pdf'):
-        print("[ERROR] Not a PDF file")
+        print("[ERROR] Unsupported file type")
         return jsonify({'error': 'File must be a PDF'}), 400
     
     try:

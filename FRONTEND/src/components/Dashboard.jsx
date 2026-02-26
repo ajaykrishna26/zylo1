@@ -49,7 +49,7 @@ const Dashboard = () => {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', maxWidth: '800px', width: '100%' }}>
-                    
+
                     {/* Upload PDF Card */}
                     <div
                         className="glass fade-in"
@@ -86,7 +86,7 @@ const Dashboard = () => {
                             Upload PDF
                         </h2>
                         <p style={{ margin: '0', color: '#a0aec0', fontSize: '1rem', lineHeight: '1.6' }}>
-                            Upload a new PDF document to practice reading and pronunciation
+                            Upload a new PDF to practice reading and pronunciation
                         </p>
                     </div>
 
@@ -126,7 +126,7 @@ const Dashboard = () => {
                             Read Books
                         </h2>
                         <p style={{ margin: '0', color: '#a0aec0', fontSize: '1rem', lineHeight: '1.6' }}>
-                            Select from your previously uploaded PDFs and practice reading
+                            Select from your previously uploaded documents and practice reading
                         </p>
                     </div>
 

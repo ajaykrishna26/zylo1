@@ -703,13 +703,13 @@ const DocumentReader = ({
         {/* Online Book Text Renderer */}
         {isOnlineBook ? (
           contentLoading ? (
-            <div className="text-white">Loading online book content...</div>
+            <div className="text-white">Loading online book...</div>
           ) : contentError ? (
             <div style={{ color: '#f87171', textAlign: 'center', padding: '40px' }}>
               <p>❌ {contentError}</p>
-              <p style={{ fontSize: '0.9rem', color: '#a0aec0' }}>Try selecting a different book</p>
+              <p style={{ fontSize: '0.9rem', color: '#a0aec0' }}>Try selecting a different document</p>
             </div>
-          ) : onlineSentences.length > 0 ? (
+          ) : effectiveSentences.length > 0 ? (
             <div className="online-book-reader" style={{
               maxWidth: '850px',
               width: '100%',
@@ -721,7 +721,7 @@ const DocumentReader = ({
               color: '#e2e8f0'
             }}>
               <div style={{ position: 'relative' }}>
-                {onlineSentences.map((sentence, idx) => (
+                {effectiveSentences.map((sentence, idx) => (
                   <span
                     key={idx}
                     className={idx === activeSentenceIndex ? 'sentence-active' : ''}
@@ -753,7 +753,7 @@ const DocumentReader = ({
               </div>
             </div>
           ) : (
-            <div className="text-white">No sentences found</div>
+            <div className="text-white">No content found</div>
           )
         ) : (
           /* PDF Renderer */
