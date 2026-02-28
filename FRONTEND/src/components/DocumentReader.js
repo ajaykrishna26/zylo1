@@ -34,6 +34,7 @@ const DocumentReader = ({
   const [contentLoading, setContentLoading] = useState(isOnlineBook);
   const [contentError, setContentError] = useState('');
   const [onlineSentences, setOnlineSentences] = useState([]);
+  const [activeWordIndex, setActiveWordIndex] = useState(-1);
 
   // Audio refs
   const utteranceRef = useRef(null);
@@ -299,29 +300,35 @@ const DocumentReader = ({
   const handleListenClick = async () => {
     if (!effectiveSentences[activeSentenceIndex]) return;
 
-    // Stop browser voice reading
+    // Stop existing audio
     window.speechSynthesis.cancel();
+    audioPlayerRef.current.pause();
 
-    setIsTtsLoading(true);
-    try {
-      const text = effectiveSentences[activeSentenceIndex].text;
-      const response = await fetch('/api/practice/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
+    const text = effectiveSentences[activeSentenceIndex].text;
+    const utterance = new SpeechSynthesisUtterance(text);
 
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        audioPlayerRef.current.src = url;
-        audioPlayerRef.current.play();
+    if (selectedVoice) utterance.voice = selectedVoice;
+    utterance.rate = readingSpeed / 120; // Normalize speed
+
+    utterance.onboundary = (event) => {
+      if (event.name === 'word') {
+        const charIndex = event.charIndex;
+        const words = text.substring(0, charIndex + event.charLength).trim().split(/\s+/);
+        setActiveWordIndex(words.length - 1);
       }
-    } catch (err) {
-      console.error("TTS Fetch error:", err);
-    } finally {
-      setIsTtsLoading(false);
-    }
+    };
+
+    utterance.onend = () => {
+      setActiveWordIndex(-1);
+      // Auto-advance to next sentence
+      if (activeSentenceIndex < effectiveSentences.length - 1) {
+        setTimeout(() => {
+          handleNextSentence();
+        }, 500);
+      }
+    };
+
+    window.speechSynthesis.speak(utterance);
   };
 
   // --- CORE LOGIC: SENTENCE HIGHLIGHTING ---
@@ -422,16 +429,6 @@ const DocumentReader = ({
       mapItem.elements.forEach(el => {
         if (isActive) {
           el.classList.add('sentence-active');
-
-          // Apply word-level coloring if practiceResult exists for this sentence
-          if (practiceResult && practiceResult.word_feedback) {
-            applyWordColoringToElement(el, practiceResult.word_feedback);
-          } else {
-            // Reset element content to original text if no feedback
-            if (el.dataset.originalText) {
-              el.innerText = el.dataset.originalText;
-            }
-          }
         } else {
           el.classList.remove('sentence-active');
           // Reset non-active lines
@@ -448,7 +445,6 @@ const DocumentReader = ({
         if (lensRef.current) {
           const container = document.querySelector('.react-pdf__Page__textContent');
           if (container) {
-            // Calculate bounding box of all elements in the active sentence
             let minTop = Infinity;
             let maxBottom = -Infinity;
             let minLeft = Infinity;
@@ -467,12 +463,8 @@ const DocumentReader = ({
               maxRight = Math.max(maxRight, relativeLeft + rect.width);
             });
 
-            // Add padding for the "lens" look
-            const paddingX = 50; // Increased padding for full coverage
-            const paddingY = 30; // Increased padding for vertical room
-
-            // Note: getBoundingClientRect() ALREADY includes the CSS scale transform.
-            // We capture the visual bounds of the zoomed spans.
+            const paddingX = 50;
+            const paddingY = 30;
 
             lensRef.current.style.display = 'block';
             lensRef.current.style.top = `${minTop - paddingY}px`;
@@ -485,6 +477,16 @@ const DocumentReader = ({
       }
     });
 
+    // Handle word-level highlighting within active sentence elements
+    const activeMapItem = domItemsMap.find(m => m.global_index === activeSentenceIndex);
+    if (activeMapItem) {
+      let cumulativeWordOffset = 0;
+      activeMapItem.elements.forEach(el => {
+        const numWords = applyWordColoringToElement(el, wordFeedback, activeWordIndex, cumulativeWordOffset);
+        cumulativeWordOffset += numWords;
+      });
+    }
+
     // If no active sentence, hide lens
     const hasActive = domItemsMap.some(m => m.global_index === activeSentenceIndex);
     if (!hasActive && lensRef.current) {
@@ -492,21 +494,47 @@ const DocumentReader = ({
       lensRef.current.style.display = 'none';
     }
 
-    // Simplified: No longer applying word-level colors to PDF layer
-    function applyWordColoringToElement(element, wordFeedback) {
+    // Updated: applying word-level colors to PDF layer
+    function applyWordColoringToElement(element, wordFeedback, activeWIdx, wordOffset) {
       if (!element.dataset.originalText) {
         element.dataset.originalText = element.innerText;
       }
-      // Just ensure the text is reset to original (no spans/colors)
-      element.innerText = element.dataset.originalText;
+
+      const parts = element.dataset.originalText.split(/(\s+)/);
+      let wordCountInElement = 0;
+
+      element.innerHTML = '';
+      parts.forEach((part) => {
+        if (part.trim().length === 0) {
+          element.appendChild(document.createTextNode(part));
+          return;
+        }
+
+        const currentGlobalWordIdx = wordOffset + wordCountInElement;
+        const isWordActive = currentGlobalWordIdx === activeWIdx;
+        const span = document.createElement('span');
+        span.className = 'word-span' + (isWordActive ? ' word-active' : '');
+
+        // Apply feedback color if available
+        if (wordFeedback && wordFeedback[currentGlobalWordIdx]) {
+          const status = wordFeedback[currentGlobalWordIdx].status;
+          if (status === 'correct') span.classList.add('word-correct');
+          else if (status === 'incorrect') span.classList.add('word-missed');
+        }
+
+        span.innerText = part;
+        element.appendChild(span);
+        wordCountInElement++;
+      });
+      return wordCountInElement;
     }
 
-    // Handle Page Advance: if current sentence is on a different page, flip page
+    // Handle Page Advance
     const currentSentence = parentSentences[activeSentenceIndex];
     if (currentSentence && currentSentence.page !== pageNumber) {
       setPageNumber(currentSentence.page);
     }
-  }, [activeSentenceIndex, domItemsMap, pageNumber, parentSentences, parentIsReading, isRecording, practiceResult]);
+  }, [activeSentenceIndex, domItemsMap, pageNumber, parentSentences, parentIsReading, isRecording, practiceResult, activeWordIndex]);
 
   // Notify parent of current sentence text when it changes (for online books)
   useEffect(() => {
@@ -733,20 +761,27 @@ const DocumentReader = ({
                       transition: 'all 0.2s ease',
                       backgroundColor: idx === activeSentenceIndex ? 'rgba(59, 130, 246, 0.3)' : 'transparent',
                       fontWeight: idx === activeSentenceIndex ? '600' : 'normal',
-                      color: idx === activeSentenceIndex ? '#3b82f6' : '#e2e8f0'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (idx !== activeSentenceIndex) {
-                        e.target.style.backgroundColor = 'rgba(75, 85, 99, 0.5)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (idx !== activeSentenceIndex) {
-                        e.target.style.backgroundColor = 'transparent';
-                      }
+                      color: idx === activeSentenceIndex ? '#3b82f6' : '#e2e8f0',
+                      display: 'inline-block'
                     }}
                   >
-                    {sentence.text}{' '}
+                    {sentence.text.split(/(\s+)/).map((part, wIdx) => {
+                      if (part.trim().length === 0) return part;
+
+                      // Calculate word index (skipping whitespaces)
+                      const realWordIdx = sentence.text.substring(0, sentence.text.indexOf(part, sentence.text.split(/(\s+)/).slice(0, wIdx).join('').length)).trim().split(/\s+/).length - 1;
+                      const isWordActive = idx === activeSentenceIndex && realWordIdx === activeWordIndex;
+
+                      return (
+                        <span
+                          key={wIdx}
+                          className={isWordActive ? 'word-active' : ''}
+                        >
+                          {part}
+                        </span>
+                      );
+                    })}
+                    {' '}
                   </span>
                 ))}
                 <div ref={lensRef} className="magnifier-container" style={{ display: 'none', opacity: 0 }} />

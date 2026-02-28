@@ -100,6 +100,20 @@ code {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
+.word-active {
+  background-color: #fbbf24 !important;
+  /* Amber 400 */
+  color: #000 !important;
+  box-shadow: 0 0 10px 2px rgba(251, 191, 36, 0.6);
+  border-radius: 3px;
+  transform: scale(1.1);
+  display: inline-block;
+  padding: 0 4px;
+  transition: all 0.2s ease;
+  z-index: 20;
+  position: relative;
+}
+
 @keyframes pulse-highlight {
 
   0%,
@@ -128,17 +142,24 @@ code {
 .react-pdf__Page__textContent.focus-mode .sentence-active {
   filter: none !important;
   opacity: 1 !important;
-  transform: scale(1.3) !important;
-  /* Reduced for better readability */
-  background-color: #ffffff !important;
-  /* High contrast white background */
+  transform: scale(1.05) !important;
+  /* Reduced scale to prevent jumpiness */
+  background-color: rgba(255, 255, 255, 0.4) !important;
+  /* Semi-transparent white */
   color: #000000 !important;
-  /* High contrast black text */
-  z-index: 100 !important;
-  border-radius: 8px;
-  margin: 0 10px;
-  /* Prevent clipping at edges */
+  z-index: 10 !important;
+  border-radius: 4px;
+  padding: 0 5px;
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.3s ease;
+  overflow: visible !important;
+}
+
+.online-book-reader .sentence-active {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  color: #e2e8f0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  animation: none !important;
 }
 
 /* Magnifier Lens Container */
